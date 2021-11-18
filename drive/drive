@@ -1,0 +1,42 @@
+#!/bin/bash
+
+function killprocesses {
+    sudo pgrep "^$(basename $0)$" | grep -vP "$$" | awk '{system("kill -9 " $1 "")}'
+    sudo pgrep "^remote$" | awk '{system("kill -9 " $1 "")}'
+    sudo pgrep "^car$" | awk '{system("kill -9 " $1 "")}'
+    sudo pgrep "python" | awk '{system("kill -9 " $1 "")}'
+    sudo pgrep "ros" | awk '{system("kill -9 " $1 "")}'
+}
+
+delay=4
+
+clear
+echo -ne "killing existing processes...\r"
+killprocesses
+sleep $delay
+echo -e "killing existing processes...\t[DONE]"
+
+source ./catkin_ws/devel/setup.bash
+echo -ne "starting roscore...\r"
+roscore 1> /dev/null &
+sleep $delay
+echo -e "starting roscore...\t\t[STARTED]"
+
+echo -ne "starting car remote node...\r"
+rosrun car remote &
+sleep $delay
+echo -e "starting car remote node...\t[STARTED]"
+
+echo -ne "starting car node...\r"
+rosrun car car _FPS:=30 _ENABLE_DMS:=True &
+sleep $delay
+echo -e "starting car node...\t\t[STARTED]"
+
+echo
+echo "ACTIVE TOPICS:"
+echo "------------------"
+rostopic list
+
+echo
+read -p "press [ENTER] to end drive" none; echo "ending drive...";
+killprocesses
